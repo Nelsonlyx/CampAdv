@@ -5,9 +5,11 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "HandController.h"
-
+#include "InputActionValue.h"
 
 #include "VRCharacter.generated.h"
+
+
 
 UCLASS()
 class CAMPADVENTURE_API AVRCharacter : public ACharacter
@@ -15,23 +17,41 @@ class CAMPADVENTURE_API AVRCharacter : public ACharacter
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this character's properties
 	AVRCharacter();
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+
 public:	
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	// Interactions
+
+	// Components
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	class UCameraComponent* Camera;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	USkeletalMesh* RightHandMeshClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	USkeletalMesh* LeftHandMeshClass;
+	
+	/** MappingContext */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputMappingContext* DefaultMappingContext;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputMappingContext* HandsMappingContext;
+
+	/** Move Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* WalkForward;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* WalkRight;
+
 private:
-	void MoveForward(float throttle);
-	void MoveRight(float throttle);
+
 
 	void GripLeft() { LeftController->Grip(); }
 	void ReleaseLeft() { LeftController->Release(); }
@@ -44,8 +64,7 @@ private:
 
 	UPROPERTY(VisibleAnywhere)
 	class USceneComponent* VRRoot;
-	UPROPERTY(VisibleAnywhere)
-	class UCameraComponent* Camera;
+
 	UPROPERTY()
 	class AHandController* RightController;
 	UPROPERTY()
@@ -60,9 +79,5 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AHandController> HandControllerClass;
 
-	UPROPERTY(EditDefaultsOnly)
-	USkeletalMesh* RightHandMeshClass;
-	UPROPERTY(EditDefaultsOnly)
-	USkeletalMesh* LeftHandMeshClass;
 
 };

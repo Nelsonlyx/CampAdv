@@ -12,6 +12,8 @@
 #include "Curves/CurveFloat.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
 
 
 // Sets default values
@@ -25,7 +27,7 @@ AVRCharacter::AVRCharacter()
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(VRRoot);
-	// testt
+
 
 }
 
@@ -52,7 +54,18 @@ void AVRCharacter::BeginPlay()
 	}
 
 	LeftController->PairController(RightController);
+
+	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		{
+			Subsystem->AddMappingContext(DefaultMappingContext, 0);
+			Subsystem->AddMappingContext(HandsMappingContext, 1);
+		}
+	}
 }
+
+
 
 // Called every frame
 void AVRCharacter::Tick(float DeltaTime)
@@ -63,24 +76,6 @@ void AVRCharacter::Tick(float DeltaTime)
 	NewCameraOffset.Z = 0;
 	AddActorWorldOffset(NewCameraOffset);
 	VRRoot->AddWorldOffset(-NewCameraOffset);
-
-	//LeftController = GetWorld()->SpawnActor<AHandController>(HandControllerClass);
-	//if (LeftController != nullptr)
-	//{
-	//	LeftController->AttachToComponent(VRRoot, FAttachmentTransformRules::KeepRelativeTransform);
-	//	LeftController->SetHand(EControllerHand::Left);
-	//	LeftController->SetOwner(this);
-	//}
-	//RightController = GetWorld()->SpawnActor<AHandController>(HandControllerClass);
-	//if (RightController != nullptr)
-	//{
-	//	RightController->AttachToComponent(VRRoot, FAttachmentTransformRules::KeepRelativeTransform);
-	//	RightController->SetHand(EControllerHand::Right);
-	//	RightController->SetOwner(this);
-	//}
-
-	//LeftController->PairController(RightController);
-
 }
 
 // Called to bind functionality to input
@@ -91,14 +86,8 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 }
 
-void AVRCharacter::MoveForward(float throttle)
-{
-	AddMovementInput(Camera->GetForwardVector(), throttle);
-}
 
-void AVRCharacter::MoveRight(float throttle)
-{
-	AddMovementInput(Camera->GetRightVector(), throttle);
-}
+
+
 
 

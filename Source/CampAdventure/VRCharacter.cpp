@@ -6,6 +6,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Camera/PlayerCameraManager.h"
+#include "Components/PostProcessComponent.h"
 #include "TimerManager.h"
 #include "Components/CapsuleComponent.h"
 #include "NavigationSystem.h"
@@ -14,6 +15,8 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Math/Vector2D.h"
+
 
 
 // Sets default values
@@ -28,6 +31,7 @@ AVRCharacter::AVRCharacter()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(VRRoot);
 
+	PostProcessComponent = CreateDefaultSubobject<UPostProcessComponent>(TEXT("PostProcessComponent"));
 
 }
 
@@ -35,6 +39,12 @@ AVRCharacter::AVRCharacter()
 void AVRCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (BlinkerMaterial != nullptr)
+	{
+		BlinkerMatInstance = UMaterialInstanceDynamic::Create(BlinkerMaterial, this);
+		PostProcessComponent->AddOrUpdateBlendable(BlinkerMatInstance);
+	}
 	
 	LeftController = GetWorld()->SpawnActor<AHandController>(HandControllerClass);
 	if (LeftController != nullptr && LeftHandMeshClass != nullptr)
@@ -65,6 +75,15 @@ void AVRCharacter::BeginPlay()
 	}
 }
 
+void AVRCharacter::Move(const FInputActionValue& Value)
+{
+	// input is a Vector2D
+	FVector2D MovementVector = Value.Get<FVector2D>();
+
+	AddMovementInput(Camera->GetForwardVector(), MovementVector.Y);
+	AddMovementInput(Camera->GetRightVector(), MovementVector.X);
+}
+
 
 
 // Called every frame
@@ -76,6 +95,8 @@ void AVRCharacter::Tick(float DeltaTime)
 	NewCameraOffset.Z = 0;
 	AddActorWorldOffset(NewCameraOffset);
 	VRRoot->AddWorldOffset(-NewCameraOffset);
+
+	SetBlinkers();
 }
 
 // Called to bind functionality to input
@@ -83,7 +104,69 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		// Moving
+		EnhancedInputComponent->BindAction(VRMove, ETriggerEvent::Triggered, this, &AVRCharacter::Move);
 
+		// Climbing
+		EnhancedInputComponent->BindAction(GripLeftHand, ETriggerEvent::Started, this, &AVRCharacter::GripLeft);
+		EnhancedInputComponent->BindAction(GripLeftHand, ETriggerEvent::Completed, this, &AVRCharacter::ReleaseLeft);
+		EnhancedInputComponent->BindAction(GripRightHand, ETriggerEvent::Started, this, &AVRCharacter::GripRight);
+		EnhancedInputComponent->BindAction(GripRightHand, ETriggerEvent::Completed, this, &AVRCharacter::ReleaseRight);
+	}
+
+}
+
+void AVRCharacter::SetBlinkers()
+{
+	if (VelocityVsRadius == nullptr)
+	{
+		return;
+	}
+	PlayerSpeed = GetVelocity().Size();
+	BlinkerRadius = VelocityVsRadius->GetFloatValue(PlayerSpeed);
+	BlinkerMatInstance->SetScalarParameterValue(TEXT("Radius"), BlinkerRadius);
+
+	FVector2D CenterPos = GetBlinkerCenter();
+	BlinkerMatInstance->SetVectorParameterValue(TEXT("CenterPos"), FLinearColor(CenterPos.X, CenterPos.Y, 0, 0));
+}
+
+FVector2D AVRCharacter::GetBlinkerCenter()
+{
+	FVector MovementDirection = GetVelocity().GetSafeNormal();
+	if (MovementDirection.IsNearlyZero())
+	{
+		return FVector2D(0.5, 0.5);
+	}
+
+	FVector WorldLocation;
+	if (FVector::DotProduct(Camera->GetForwardVector(), MovementDirection) > 0)
+	{
+		WorldLocation = Camera->GetComponentLocation() + MovementDirection * 1000;
+	}
+	else
+	{
+		WorldLocation = Camera->GetComponentLocation() - MovementDirection * 1000;
+	}
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC == nullptr)
+	{
+		return FVector2D(0.5, 0.5);
+	}
+	FVector2D ScreenLocation;
+	PC->ProjectWorldLocationToScreen(WorldLocation, ScreenLocation);
+
+	int32 SizeX, SizeY;
+	PC->GetViewportSize(SizeX, SizeY);
+	ScreenLocation.X /= SizeX;
+	ScreenLocation.Y /= SizeY;
+
+	FVector2D ClampedScreenLocation = ScreenLocation.ClampAxes(0.4, 0.6);
+	FString ScreenLocStr = ClampedScreenLocation.ToString();
+
+	return ClampedScreenLocation;
 }
 
 

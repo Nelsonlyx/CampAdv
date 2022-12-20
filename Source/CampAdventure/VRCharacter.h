@@ -22,62 +22,77 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	// Interactions
+	void Move(const FInputActionValue& Value);
+
 
 public:	
 	virtual void Tick(float DeltaTime) override;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	// Interactions
-
 	// Components
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	class UCameraComponent* Camera;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	USkeletalMesh* RightHandMeshClass;
+	class USkeletalMesh* RightHandMeshClass;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	USkeletalMesh* LeftHandMeshClass;
+	class USkeletalMesh* LeftHandMeshClass;
 	
 	/** MappingContext */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	class UInputMappingContext* DefaultMappingContext;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	class UInputMappingContext* HandsMappingContext;
 
 	/** Move Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	class UInputAction* WalkForward;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	class UInputAction* WalkRight;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
+	class UInputAction* VRMove;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
+	class UInputAction* GripLeftHand;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
+	class UInputAction* GripRightHand;
 
 private:
 
+	void GripLeft() { LeftController->Grip(); UE_LOG(LogTemp, Warning, TEXT("Gripped")); }
+	void ReleaseLeft() { LeftController->Release(); UE_LOG(LogTemp, Warning, TEXT("Released"));}
+	void GripRight() { RightController->Grip(); UE_LOG(LogTemp, Warning, TEXT("Gripped"));}
+	void ReleaseRight() { RightController->Release(); UE_LOG(LogTemp, Warning, TEXT("Released"));}
 
-	void GripLeft() { LeftController->Grip(); }
-	void ReleaseLeft() { LeftController->Release(); }
-	void GripRight() { RightController->Grip(); }
-	void ReleaseRight() { RightController->Release(); }
-
+	void SetBlinkers();
+	FVector2D GetBlinkerCenter();
 
 private:
-	// Configuration Parameters
 
+	// Components
 	UPROPERTY(VisibleAnywhere)
 	class USceneComponent* VRRoot;
-
 	UPROPERTY()
 	class AHandController* RightController;
 	UPROPERTY()
 	class AHandController* LeftController;
 
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AHandController> HandControllerClass;
+	
+	// Walking Blinkers
+	UPROPERTY(EditAnywhere)
+	class UMaterialInterface* BlinkerMaterial;
+	UPROPERTY(EditAnywhere)
+	float BlinkerRadius = 0.5;
+	UPROPERTY()
+	UMaterialInstanceDynamic* BlinkerMatInstance;
+	UPROPERTY(VisibleAnywhere)
+	class UPostProcessComponent* PostProcessComponent;
 
+	// Configuration Parameters
 	UPROPERTY(EditAnywhere)
 	class UCurveFloat* VelocityVsRadius;
 	UPROPERTY()
 	float PlayerSpeed;
 
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<AHandController> HandControllerClass;
+
 
 
 };

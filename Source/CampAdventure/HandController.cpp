@@ -3,8 +3,10 @@
 
 #include "HandController.h"
 #include "VRCharacter.h"
+#include "GameFramework/Pawn.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+
 #include "Components/SphereComponent.h"
 
 
@@ -19,6 +21,9 @@ AHandController::AHandController()
 
 	HandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("HandMesh"));
 	HandMesh->SetupAttachment(MotionController);
+
+	SphereCollider = CreateDefaultSubobject<USphereComponent>(TEXT("SphereCollider"));
+	SphereCollider->SetupAttachment(MotionController);
 }
 
 // Called when the game starts or when spawned
@@ -62,6 +67,8 @@ void AHandController::Grip()
 		if (Character != nullptr)
 		{
 			Character->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Flying);
+			FString MovementModeStr = Character->GetCharacterMovement()->GetMovementName();
+			UE_LOG(LogTemp, Warning, TEXT("Movement mode: %s"), *MovementModeStr);
 		}
 	}
 
@@ -71,12 +78,14 @@ void AHandController::Release()
 {
 	if (bIsClimbing)
 	{
-		OtherController->bIsClimbing = true;
+		bIsClimbing = false;
 
 		ACharacter* Character = Cast<ACharacter>(GetAttachParentActor());
 		if (Character != nullptr)
 		{
 			Character->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Falling);
+			FString MovementModeStr = Character->GetCharacterMovement()->GetMovementName();
+			UE_LOG(LogTemp, Warning, TEXT("Movement mode: %s"), *MovementModeStr);
 		}
 	}
 
@@ -103,7 +112,7 @@ void AHandController::PairController(AHandController* Controller)
 void AHandController::ActorBeginOverlap(AActor* OverlappedActor, AActor* OtherActor)
 {
 	bool bNewCanClimb = CanClimb();
-	if (bNewCanClimb && !bCanClimb)
+	if (!bCanClimb && bNewCanClimb)
 	{
 		APawn* Pawn = Cast<APawn>(GetAttachParentActor());
 		if (Pawn != nullptr)
@@ -112,7 +121,6 @@ void AHandController::ActorBeginOverlap(AActor* OverlappedActor, AActor* OtherAc
 			if (PC != nullptr)
 			{
 				PC->PlayHapticEffect(HandHoldHaptic, MotionController->GetTrackingSource());
-
 			}
 		}
 	}

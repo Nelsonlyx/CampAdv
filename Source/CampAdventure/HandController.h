@@ -50,6 +50,9 @@ private:
 	UMotionControllerComponent* MotionController;
 	UPROPERTY(VisibleAnywhere)
 	USkeletalMeshComponent* HandMesh;
+	UPROPERTY(VisibleAnywhere)
+	class USphereComponent* SphereCollider;
+
 	UPROPERTY(EditDefaultsOnly)
 	class UHapticFeedbackEffect_Base* HandHoldHaptic;
 
